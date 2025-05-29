@@ -2,17 +2,16 @@ package com.immortals.miniurl.service;
 
 import com.immortals.miniurl.context.RequestContext;
 import com.immortals.miniurl.context.StrategyContext;
+import com.immortals.miniurl.factory.SmartUrlStrategySelectorFactory;
+import com.immortals.miniurl.factory.UrlShorteningStrategyFactory;
+import com.immortals.miniurl.model.UrlMapping;
 import com.immortals.miniurl.model.dto.CachedUrlData;
 import com.immortals.miniurl.model.dto.UrlShortenerDto;
 import com.immortals.miniurl.model.enums.RedirectType;
 import com.immortals.miniurl.model.enums.UrlStrategyType;
-import com.immortals.miniurl.factory.SmartUrlStrategySelectorFactory;
-import com.immortals.miniurl.factory.UrlShorteningStrategyFactory;
-import com.immortals.miniurl.model.UrlAccessLog;
-import com.immortals.miniurl.model.UrlMapping;
+import com.immortals.miniurl.model.security.CurrentUserProvider;
 import com.immortals.miniurl.repository.UrlAccessLogRepository;
 import com.immortals.miniurl.repository.UrlMappingRepository;
-import com.immortals.miniurl.model.security.CurrentUserProvider;
 import com.immortals.miniurl.service.cache.CacheService;
 import com.immortals.miniurl.service.exception.CacheException;
 import com.immortals.miniurl.service.exception.UrlShorteningException;
@@ -22,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -31,7 +29,6 @@ import org.springframework.util.StringUtils;
 
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.immortals.miniurl.utils.UrlUtil.buildFullUrl;
@@ -142,7 +139,6 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
 
             CachedUrlData cachedUrlData = JsonUtils.fromJson(cachedData.toString(), CachedUrlData.class);
             log.trace("Cache hit for short URL: {}", shortUrl);
-            saveUrlAccessData(shortUrl);
             return cachedUrlData.getOriginalUrl();
         }
 
@@ -155,7 +151,6 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
                     log.trace("Found original URL in DB for short URL: {}", shortUrl);
                     originalUrl.set(mapping.getOriginalUrl());
                 }, () -> log.warn("No mapping found in DB for short URL: {}", shortUrl));
-        saveUrlAccessData(shortUrl);
         return originalUrl.get();
     }
 
@@ -166,18 +161,5 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
                     originalUrl.set(mapping.getOriginalUrl());
                 }, () -> log.warn("No mapping found in DB for short URL with User Id: {} {}", shortUrl,userId));
         return originalUrl.get();
-    }
-
-    private void saveUrlAccessData(String shortUrl) {
-        UrlAccessLog logEntry = UrlAccessLog.builder()
-                .accessCount(1L)
-                .accessedAt(OffsetDateTime.now())
-                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .referer(1L)
-                .deviceType("Desktop")
-                .responseStatus((long) HttpStatus.TEMPORARY_REDIRECT.value())
-                .responseTimeMs(150L)
-                .build();
-
     }
 }
