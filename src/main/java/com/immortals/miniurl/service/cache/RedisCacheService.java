@@ -47,7 +47,7 @@ public class RedisCacheService<K, V> implements CacheService<K, V> {
             isolation = Isolation.READ_COMMITTED,
             rollbackFor = {CacheException.class, RuntimeException.class}
     )
-    public void put(K key, V value, Duration ttl) {
+    public void put(K key, V value, Duration ttl) throws CacheException {
         try {
             valueOps.set(key, value, ttl);
         } catch (DataAccessException e) {

@@ -9,8 +9,11 @@ public class UrlConstants {
 
     public static final String TOKEN_PREFIX = "Bearer ";
     public static final String HEADER_STRING = "Authorization";
-    public static final Long MAX_AGE_SECS = 3600L;
+
     public static final String MDC_USER_AGENT_KEY = "userAgent";
+
+    public static final Long MAX_AGE_CORS_SECS = 86400L;
+    public static final Long MAX_AGE_HSTS_SECS = 86400L;
 
     public static final int RANDOM_LENGTH = 7;
     public static final int HASH_LENGTH = 10;

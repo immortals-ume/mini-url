@@ -1,10 +1,11 @@
 package com.immortals.miniurl.audit;
 
+import com.immortals.miniurl.model.domain.AuditingRevisionEntity;
 import com.immortals.miniurl.model.enums.UserTypes;
-import com.immortals.miniurl.model.audit.AuditingRevisionEntity;
 import com.immortals.miniurl.service.exception.UrlShorteningException;
 import org.hibernate.envers.RevisionListener;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 
 public class AuditingRevisionListener implements RevisionListener {
     @Override

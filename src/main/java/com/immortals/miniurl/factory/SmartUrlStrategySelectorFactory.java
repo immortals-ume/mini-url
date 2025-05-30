@@ -14,7 +14,7 @@ public class SmartUrlStrategySelectorFactory {
             return context.isHighThroughput() ? UrlStrategyType.SNOWFLAKE : UrlStrategyType.HASH;
         }
 
-        if (!context.isHighThroughput()) {
+        if (context.isUseTimestamp()) {
             return UrlStrategyType.TIMESTAMP_RANDOM;
         }
 

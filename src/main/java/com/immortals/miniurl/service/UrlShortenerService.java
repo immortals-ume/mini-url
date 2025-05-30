@@ -1,12 +1,12 @@
 package com.immortals.miniurl.service;
 
 
-import com.immortals.miniurl.model.dto.UrlShortenerDto;
+import com.immortals.miniurl.model.dto.MiniUrlRequestDto;
+import com.immortals.miniurl.model.dto.MiniUrlResponseDto;
 
 public interface UrlShortenerService {
 
-    String createShortUrl(UrlShortenerDto urlShortenerDto);
+    MiniUrlResponseDto createShortUrl(MiniUrlRequestDto miniUrlRequestDto);
 
     String getLongUrl(String shortUrl);
-
 }

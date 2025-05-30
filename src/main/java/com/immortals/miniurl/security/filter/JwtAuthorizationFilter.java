@@ -1,9 +1,8 @@
 package com.immortals.miniurl.security.filter;
 
-import com.immortals.miniurl.security.jwt.JwtUtil;
 import com.immortals.miniurl.model.security.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
+import com.immortals.miniurl.security.jwt.JwtProvider;
+import com.nimbusds.jwt.JWTClaimsSet;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.List;
 
 import static com.immortals.miniurl.constants.UrlConstants.HEADER_STRING;
@@ -25,17 +25,14 @@ import static com.immortals.miniurl.constants.UrlConstants.TOKEN_PREFIX;
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil;
+    private final JwtProvider jwtProvider;
 
-    public JwtAuthorizationFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
+    public JwtAuthorizationFilter(JwtProvider jwtProvider) {
+        this.jwtProvider = jwtProvider;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String header = request.getHeader(HEADER_STRING);
 
@@ -46,26 +43,30 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         try {
             String token = header.substring(7);
-            Jws<Claims> parsedToken = jwtUtil.validateToken(token);
-            Claims claims = parsedToken.getBody();
-
-            String username = jwtUtil.getUsername(claims);
-            Long userId = claims.get("userId", Long.class);
-            List<SimpleGrantedAuthority> authorities = jwtUtil.getRoles(claims)
-                    .stream()
-                    .map(SimpleGrantedAuthority::new)
-                    .toList();
+            boolean validated = jwtProvider.validateToken(token);
+            if (validated) {
 
 
-            User principal = new User(userId, username, authorities);
-            Authentication authentication =
-                    new UsernamePasswordAuthenticationToken(principal, null, authorities);
-            SecurityContextHolder.getContext()
-                    .setAuthentication(authentication);
+                String username = jwtProvider.getUsernameFromToken(token);
 
+                List<SimpleGrantedAuthority> authorities = jwtProvider.getAuthoritiesFromToken(token)
+                        .stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .toList();
+
+                JWTClaimsSet claims = jwtProvider.getClaimsFromToken(token);
+                Long userId = jwtProvider.getUserIdFromClaims(claims, "userId");
+
+                User principal = new User(userId, username, authorities);
+                Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
+            }
         } catch (JwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
 
         filterChain.doFilter(request, response);

@@ -13,7 +13,7 @@ public class StrategyContext {
     private Boolean highThroughput;
     private Boolean needsDeterminism;
     private Boolean internalTool;
-
+    private Boolean useTimestamp;
     public Boolean isCustomAlias() {
         return customAlias;
     }
@@ -32,5 +32,9 @@ public class StrategyContext {
 
     public Boolean isInternalTool() {
         return internalTool;
+    }
+
+    public Boolean isUseTimestamp() {
+        return useTimestamp;
     }
 }

@@ -11,7 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class UrlShortenerDto {
+public class MiniUrlRequestDto {
 
     @NotBlank(message = "Original URL cannot be empty")
     @Pattern(regexp = "^(https?://).+", message = "Original URL must start with http:// or https://")
@@ -23,6 +23,8 @@ public class UrlShortenerDto {
     private Boolean needsDeterminism;
     private Boolean internalTool;
 
+    private Boolean useTimestamp;
+
     @Size(max = 30, message = "Alias must be 0–30 characters")
     @Pattern(regexp = "^[a-zA-Z0-9_-]+$", message = "Alias can only contain alphanumeric characters, dashes, or underscores")
     private String customAliasName;
@@ -33,8 +35,9 @@ public class UrlShortenerDto {
     @Size(max = 20, message = "tags must contain at most 20 elements")
     private List<@Size(max = 30, message = "Each tag must be under 30 characters") String> tags;
 
-    private Long amount;
+    private Long amountOfTime;
 
-    @Pattern(regexp = "^(seconds|minutes|hours|Days|Months)$", message = "unitTime must be seconds, minutes, or hours")
+    @Pattern(regexp = "^(seconds|minutes|hours)$", message = "unitTime must be seconds, minutes, or hours ")
     private String unitTime;
+
 }

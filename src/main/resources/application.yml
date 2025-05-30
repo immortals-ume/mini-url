@@ -4,14 +4,16 @@ spring:
   profiles:
     default: dev
     active: dev
-  datasource:
-    url: jdbc:postgresql://localhost:5432/url_shortener_db
-    username: user
+  liquibase:
+    default-schema: public
+    liquibase-schema: public
+    change-log: db/changelog-master.xml
+    enabled: true
+    url: jdbc:postgresql://localhost:5432/mini_url_db
+    user: user
     password: admin
     driver-class-name: org.postgresql.Driver
   jpa:
-    hibernate:
-      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -32,6 +34,27 @@ spring:
 server:
   address: localhost
   port: 8080
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024 # in bytes
+
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+    enabled: true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      zone: primary
+    hostname: ${HOSTNAME:localhost}
 
 management:
   server:
@@ -39,7 +62,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,httptrace,loggers
+        include: "*"
   endpoint:
     health:
       show-details: always
@@ -77,6 +100,9 @@ cache:
     enabled: true
 
 auth:
+  cache:
+    static-resources:
+      max-age-seconds: 31536000
   cors:
     allowed-origins:
       - "http://localhost:3000"
@@ -85,25 +111,22 @@ auth:
       - "GET"
       - "POST"
       - "PUT"
+      - "PATCH"
       - "DELETE"
       - "OPTIONS"
     allowed-headers:
       - "*"
     allow-credentials: true
-    max-age: 3600
+    max-age: 31536000
 
-swagger:
-    title: "URL Shortener API"
-    description: "API for shortening URLs using different strategies."
-    version: "1.0.0"
-    terms-of-service: "https://example.com/terms"
-    contact: "Support Team - support@example.com (https://example.com/support)"
-    license:
-      name: "Apache 2.0"
-      url: "https://www.apache.org/licenses/LICENSE-2.0.html"
-    servers:
-      - url: "https://api.example.com"
-      - description: "Production Server"
-      - url: "http://localhost:8080"
-      - description: "Local Dev Server"
-    enabled: true
+datasource:
+  write:
+    url: jdbc:postgresql://localhost:5432/mini_url_db
+    username: user
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  read:
+    url: jdbc:postgresql://localhost:5432/url_shortener_db
+    username: user
+    password: admin
+    driver-class-name: org.postgresql.Driver

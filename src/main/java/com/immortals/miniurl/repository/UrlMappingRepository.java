@@ -1,6 +1,6 @@
 package com.immortals.miniurl.repository;
 
-import com.immortals.miniurl.model.UrlMapping;
+import com.immortals.miniurl.model.domain.UrlMapping;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

@@ -1,6 +1,7 @@
 package com.immortals.miniurl.controller;
 
-import com.immortals.miniurl.model.dto.UrlShortenerDto;
+import com.immortals.miniurl.model.dto.MiniUrlRequestDto;
+import com.immortals.miniurl.model.dto.MiniUrlResponseDto;
 import com.immortals.miniurl.service.UrlShortenerService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -23,14 +24,18 @@ public class UrlShortenerController {
     @PreAuthorize("hasRole('ROLE_USER') or hasRole('ADMIN')")
     @PostMapping(value = "/shorten", consumes = "application/json", produces = "application/json")
     @ResponseStatus(HttpStatus.CREATED)
-    public String createShortUrl(@RequestBody @Valid UrlShortenerDto urlShortenerDto) {
-        return urlShortenerService.createShortUrl(urlShortenerDto);
+    public MiniUrlResponseDto createShortUrl(@RequestBody @Valid MiniUrlRequestDto miniUrlRequestDto) {
+        return urlShortenerService.createShortUrl(miniUrlRequestDto);
     }
 
-    @GetMapping("/redirect")
-    public void redirectToLongUrl(@RequestParam(value = "shortUrl") String shortUrl, HttpServletResponse response) throws IOException {
+    @GetMapping("/redirect/{shortUrl}")
+    public void redirectToLongUrl(@PathVariable String shortUrl, HttpServletResponse response) throws IOException {
         String longUrl = urlShortenerService.getLongUrl(shortUrl);
-        response.sendRedirect(longUrl);
+        if (longUrl != null) {
+            response.sendRedirect(longUrl);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Short URL not found");
+        }
     }
 
 }

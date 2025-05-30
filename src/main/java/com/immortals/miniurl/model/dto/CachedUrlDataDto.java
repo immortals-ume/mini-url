@@ -11,7 +11,7 @@ import java.time.Instant;
 @Builder
 @AllArgsConstructor
 @RequiredArgsConstructor
-public class CachedUrlData {
+public class CachedUrlDataDto {
     private String originalUrl;
     private Instant expiresAt;
 }

@@ -1,16 +1,19 @@
 package com.immortals.miniurl.service;
 
+import com.immortals.miniurl.annotation.ReadOnly;
+import com.immortals.miniurl.annotation.WriteOnly;
 import com.immortals.miniurl.context.RequestContext;
 import com.immortals.miniurl.context.StrategyContext;
 import com.immortals.miniurl.factory.SmartUrlStrategySelectorFactory;
 import com.immortals.miniurl.factory.UrlShorteningStrategyFactory;
-import com.immortals.miniurl.model.UrlMapping;
-import com.immortals.miniurl.model.dto.CachedUrlData;
-import com.immortals.miniurl.model.dto.UrlShortenerDto;
+import com.immortals.miniurl.model.domain.UrlMapping;
+import com.immortals.miniurl.model.dto.CachedUrlDataDto;
+import com.immortals.miniurl.model.dto.MiniUrlRequestDto;
+import com.immortals.miniurl.model.dto.MiniUrlResponseDto;
 import com.immortals.miniurl.model.enums.RedirectType;
 import com.immortals.miniurl.model.enums.UrlStrategyType;
+import com.immortals.miniurl.model.enums.UserTypes;
 import com.immortals.miniurl.model.security.CurrentUserProvider;
-import com.immortals.miniurl.repository.UrlAccessLogRepository;
 import com.immortals.miniurl.repository.UrlMappingRepository;
 import com.immortals.miniurl.service.cache.CacheService;
 import com.immortals.miniurl.service.exception.CacheException;
@@ -21,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
@@ -29,10 +33,11 @@ import org.springframework.util.StringUtils;
 
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.immortals.miniurl.utils.UrlUtil.buildFullUrl;
-
 
 
 @Service
@@ -40,11 +45,12 @@ import static com.immortals.miniurl.utils.UrlUtil.buildFullUrl;
 @Slf4j
 public class UrlShortenerServiceImpl implements UrlShortenerService {
 
-    private final UrlAccessLogRepository urlAccessLogRepository;
     private final UrlMappingRepository urlMappingRepository;
     private final UrlShorteningStrategyFactory urlShorteningStrategyFactory;
     private final CurrentUserProvider currentUserProvider;
     private final CacheService<String, String> cacheService;
+
+    AtomicLong hitUrlCount = new AtomicLong(0);
 
     @Value("${server.address}")
     private String address;
@@ -52,29 +58,32 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
     @Value("${server.port}")
     private Long port;
 
+
+    @WriteOnly
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public String createShortUrl(UrlShortenerDto urlShortenerDto) {
-        log.info("Creating short URL for: {}", urlShortenerDto.getOriginalUrl());
+    public MiniUrlResponseDto createShortUrl(MiniUrlRequestDto miniUrlRequestDto) {
+        log.info("Creating short URL for: {}", miniUrlRequestDto.getOriginalUrl());
 
         try {
-            if (!StringUtils.hasText(urlShortenerDto.getOriginalUrl())) {
+            if (!StringUtils.hasText(miniUrlRequestDto.getOriginalUrl())) {
                 throw new UrlShorteningException("Original URL must not be null or empty");
             }
 
             StrategyContext strategyContext = StrategyContext.builder()
-                    .customAlias(urlShortenerDto.getCustomAlias())
-                    .highThroughput(urlShortenerDto.getHighThroughput())
-                    .internalTool(urlShortenerDto.getInternalTool())
-                    .needsDeterminism(urlShortenerDto.getNeedsDeterminism())
-                    .premiumUser(urlShortenerDto.getPremiumUser())
+                    .customAlias(miniUrlRequestDto.getCustomAlias())
+                    .highThroughput(miniUrlRequestDto.getHighThroughput())
+                    .internalTool(miniUrlRequestDto.getInternalTool())
+                    .needsDeterminism(miniUrlRequestDto.getNeedsDeterminism())
+                    .premiumUser(miniUrlRequestDto.getPremiumUser())
+                    .useTimestamp(miniUrlRequestDto.getUseTimestamp())
                     .build();
 
             UrlStrategyType strategy = SmartUrlStrategySelectorFactory.selectStrategy(strategyContext);
             log.trace("Selected shortening strategy: {}", strategy.name());
 
             String shortUrl = urlShorteningStrategyFactory.getStrategy(strategy)
-                    .generate(urlShortenerDto.getOriginalUrl());
+                    .generate(miniUrlRequestDto.getOriginalUrl());
 
 
             String finalShortUrl = buildFullUrl(address + ":" + port, shortUrl);
@@ -82,84 +91,104 @@ public class UrlShortenerServiceImpl implements UrlShortenerService {
 
             log.trace("Generated short URL: {}", finalShortUrl);
 
-
-
-            String existingUrl = getShortUrlIfExists(shortUrl,new AtomicReference<>(), currentUserProvider.getCurrentUser().getId());
-            if (existingUrl != null && existingUrl.equals(urlShortenerDto.getOriginalUrl())) {
+            String existingUrl = getShortUrlIfExists(finalShortUrl, new AtomicReference<>(), currentUserProvider.getCurrentUser()
+                    .getId());
+            if (existingUrl != null && existingUrl.equals(miniUrlRequestDto.getOriginalUrl())) {
                 log.info("Short URL already exists for given original URL: {}", finalShortUrl);
-                return "Short URL already exists: " + finalShortUrl;
+                return MiniUrlResponseDto.builder()
+                        .shortUrl("Short URL already exists: " + finalShortUrl)
+                        .build();
             }
 
-            Instant expiryTime = DateTimeUtils.calculateExpiry(urlShortenerDto.getAmount(), urlShortenerDto.getUnitTime());
+            Instant expiryTime = DateTimeUtils.calculateExpiry(miniUrlRequestDto.getAmountOfTime(), miniUrlRequestDto.getUnitTime());
             UrlMapping urlMapping = UrlMapping.builder()
-                    .originalUrl(urlShortenerDto.getOriginalUrl())
+                    .originalUrl(miniUrlRequestDto.getOriginalUrl())
                     .shortUrl(finalShortUrl)
-                    .userId(1L)
-                    .notes(urlShortenerDto.getNote())
-                    .customAliasName(urlShortenerDto.getCustomAliasName())
-                    .customAlias(urlShortenerDto.getCustomAlias())
-                    .premiumUser(urlShortenerDto.getPremiumUser())
-                    .highThroughput(urlShortenerDto.getHighThroughput())
-                    .needsDeterminism(urlShortenerDto.getNeedsDeterminism())
-                    .internalTool(urlShortenerDto.getInternalTool())
+                    .userId(currentUserProvider.getCurrentUser()
+                            .getId() != null ? currentUserProvider.getCurrentUser()
+                            .getId() : 0L)
+                    .numberOfClicks(hitUrlCount.get())
+                    .notes(miniUrlRequestDto.getNote())
+                    .customAliasName(miniUrlRequestDto.getCustomAliasName())
+                    .customAlias(miniUrlRequestDto.getCustomAlias())
+                    .premiumUser(miniUrlRequestDto.getPremiumUser())
+                    .highThroughput(miniUrlRequestDto.getHighThroughput())
+                    .needsDeterminism(miniUrlRequestDto.getNeedsDeterminism())
+                    .internalTool(miniUrlRequestDto.getInternalTool())
                     .expiresAt(expiryTime)
-                    .tags(JsonUtils.toJson(urlShortenerDto.getTags()))
+                    .tags(JsonUtils.toJson(miniUrlRequestDto.getTags()))
                     .redirectType(RedirectType.TEMPORARY)
                     .strategy(strategy.name())
                     .createdUserAgent(RequestContext.getUserAgent())
+                    .createdBy(UserTypes.SYSTEM.name())
+                    .createdDate(DateTimeUtils.now())
                     .isActive(Boolean.TRUE)
                     .build();
 
             UrlMapping savedMapping = urlMappingRepository.saveAndFlush(urlMapping);
             log.info("Short URL saved to DB: {}", finalShortUrl);
 
-            boolean cacheSuccess = cacheService.putIfAbsent(finalShortUrl, JsonUtils.toJson(new CachedUrlData(savedMapping.getOriginalUrl(), savedMapping.getExpiresAt())), DateTimeUtils.durationBetween(Instant.now(), savedMapping.getExpiresAt()));
-
-            if (!cacheSuccess) {
-                log.error("Failed to cache short URL: {}", finalShortUrl);
-                throw new CacheException("Some Issue Storing Data in Cache");
-            }
+            cacheService.put(finalShortUrl, JsonUtils.toJson(new CachedUrlDataDto(savedMapping.getOriginalUrl(), savedMapping.getExpiresAt())), DateTimeUtils.durationBetween(Instant.now(), savedMapping.getExpiresAt()));
 
             log.info("Short URL successfully cached: {}", finalShortUrl);
-            return finalShortUrl;
+            return MiniUrlResponseDto.builder()
+                    .shortUrl(finalShortUrl)
+                    .build();
 
-        } catch (DataAccessException | URISyntaxException e) {
+        } catch (DataAccessException | URISyntaxException | CacheException e) {
             log.error("Error occurred while creating short URL: {}", e.getMessage(), e);
             throw new UrlShorteningException(e.getMessage(), e);
         }
     }
 
-    @Transactional(readOnly = true)
+    @ReadOnly
     @Override
     public String getLongUrl(String shortUrl) {
         log.trace("Resolving original URL for short URL: {}", shortUrl);
 
         Object cachedData = cacheService.get(shortUrl);
         if (cachedData != null) {
-
-            CachedUrlData cachedUrlData = JsonUtils.fromJson(cachedData.toString(), CachedUrlData.class);
+            incrementUrlAndUpdateTable(shortUrl, hitUrlCount.incrementAndGet());
+            CachedUrlDataDto cachedUrlDataDto = JsonUtils.fromJson(cachedData.toString(), CachedUrlDataDto.class);
             log.trace("Cache hit for short URL: {}", shortUrl);
-            return cachedUrlData.getOriginalUrl();
+            return cachedUrlDataDto.getOriginalUrl();
         }
 
         log.trace("Cache miss for short URL: {}", shortUrl);
 
         AtomicReference<String> originalUrl = new AtomicReference<>();
 
+        incrementUrlAndUpdateTable(shortUrl, hitUrlCount.incrementAndGet());
+        getUrlIfNotFoundInCache(shortUrl, originalUrl);
+        return originalUrl.get();
+    }
+
+    @ReadOnly
+    private void getUrlIfNotFoundInCache(String shortUrl, AtomicReference<String> originalUrl) {
         urlMappingRepository.findByShortUrlAndIsActiveTrue(shortUrl)
                 .ifPresentOrElse(mapping -> {
                     log.trace("Found original URL in DB for short URL: {}", shortUrl);
                     originalUrl.set(mapping.getOriginalUrl());
                 }, () -> log.warn("No mapping found in DB for short URL: {}", shortUrl));
-        return originalUrl.get();
     }
 
-    private String getShortUrlIfExists(String shortUrl, AtomicReference<String> originalUrl,Long userId) {
-        urlMappingRepository.findByShortUrlAndIsActiveTrueAndUserId(shortUrl,userId)
+    @WriteOnly
+    @Async
+    public void incrementUrlAndUpdateTable(String shortUrl, long urlHitCount) {
+        Optional<UrlMapping> urlMapping = urlMappingRepository.findByShortUrlAndIsActiveTrue(shortUrl);
+        urlMapping.ifPresent(mapping -> {
+            mapping.setNumberOfClicks(urlHitCount);
+            urlMappingRepository.saveAndFlush(mapping);
+        });
+    }
+
+    @ReadOnly
+    private String getShortUrlIfExists(String shortUrl, AtomicReference<String> originalUrl, Long userId) {
+        urlMappingRepository.findByShortUrlAndIsActiveTrueAndUserId(shortUrl, userId)
                 .ifPresentOrElse(mapping -> {
-                    log.trace("Found original URL in DB for short URL with User Id: {} {}", shortUrl,userId);
+                    log.trace("Found original URL in DB for short URL with User Id: {} {}", shortUrl, userId);
                     originalUrl.set(mapping.getOriginalUrl());
-                }, () -> log.warn("No mapping found in DB for short URL with User Id: {} {}", shortUrl,userId));
+                }, () -> log.warn("No mapping found in DB for short URL with User Id: {} {}", shortUrl, userId));
         return originalUrl.get();
     }
 }

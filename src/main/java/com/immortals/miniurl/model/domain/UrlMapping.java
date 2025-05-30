@@ -1,18 +1,21 @@
-package com.immortals.miniurl.model;
+package com.immortals.miniurl.model.domain;
 
 import com.immortals.miniurl.model.audit.Auditable;
 import com.immortals.miniurl.model.enums.RedirectType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.envers.Audited;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.List;
 
 @Entity
-@Table(name = "url_mapping", schema = "url", indexes = {
+@Table(name = "url_mapping", schema = "mini_url", indexes = {
         @Index(name = "idx_url_mapping_userid", columnList = "user_id"),
         @Index(name = "idx_url_mapping_short_url", columnList = "short_url"),
 })
@@ -20,13 +23,15 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 @Audited
 @EntityListeners(AuditingEntityListener.class)
 public class UrlMapping extends Auditable<String> implements Serializable {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "url_mapping_url_mapping_id_seq")
+    @SequenceGenerator(name = "url_mapping_url_mapping_id_seq", sequenceName = "mini_url.url_mapping_url_mapping_id_seq", allocationSize = 1)
+    @Column(name = "url_mapping_id")
     private Long urlMappingId;
 
     @Column(name = "original_url", nullable = false, columnDefinition = "TEXT")
@@ -37,6 +42,9 @@ public class UrlMapping extends Auditable<String> implements Serializable {
 
     @Column(name = "user_id", nullable = false, updatable = false)
     private Long userId;
+
+    @Column(name = "number_of_clicks", nullable = false, updatable = false)
+    private Long numberOfClicks;
 
     @Column(name = "notes", columnDefinition = "TEXT", nullable = false, updatable = false)
     private String notes;
@@ -77,8 +85,5 @@ public class UrlMapping extends Auditable<String> implements Serializable {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
-
-    @OneToMany(mappedBy = "urlMapping", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UrlAccessLog> accessLogs;
 
 }

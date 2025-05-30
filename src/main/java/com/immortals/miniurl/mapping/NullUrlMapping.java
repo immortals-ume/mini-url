@@ -1,6 +1,6 @@
 package com.immortals.miniurl.mapping;
 
-import com.immortals.miniurl.model.UrlMapping;
+import com.immortals.miniurl.model.domain.UrlMapping;
 import org.apache.commons.lang3.StringUtils;
 
 public class NullUrlMapping extends UrlMapping {

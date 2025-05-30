@@ -1,22 +1,27 @@
 openapi: 3.0.3
 info:
   title: URL Shortener API
-  description: API for shortening URLs and retrieving original ones.
+  description: API for shortening and redirecting URLs with advanced options
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080/api/v1/url
-    description: Local server
+  - url: https://api.yourdomain.com/api/v1
+    description: Production server
+
+tags:
+  - name: URL Shortener
+    description: Operations related to URL shortening and redirection
 
 paths:
-  /shorten:
+  /url/shorten:
     post:
+      tags:
+        - URL Shortener
       summary: Create a shortened URL
+      description: Accepts a long URL and optional metadata to create a shortened URL
       operationId: createShortUrl
-      parameters:
-        - $ref: '#/components/parameters/AuthorizationHeader'
-        - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/UserAgentHeader'
+      security:
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -25,66 +30,47 @@ paths:
               $ref: '#/components/schemas/UrlShortenerDto'
       responses:
         '201':
-          description: Short URL created
+          description: Shortened URL created successfully
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
-                example: http://short.ly/abc123
+                example: "https://yourdomain.com/u/abc123"
         '400':
-          description: Invalid input
-        '500':
-          description: Server error
+          description: Invalid input data
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
 
-  /:
+  /url/redirect:
     get:
-      summary: Redirect to the original URL
+      tags:
+        - URL Shortener
+      summary: Redirect to long URL
+      description: Accepts a shortened URL and redirects to the original long URL
       operationId: redirectToLongUrl
       parameters:
-        - $ref: '#/components/parameters/AuthorizationHeader'
-        - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/UserAgentHeader'
         - name: shortUrl
           in: query
           required: true
+          description: The short URL key
           schema:
             type: string
-          example: abc123
+            example: abc123
       responses:
         '302':
-          description: Redirect to original URL
+          description: Redirect to the original URL
         '404':
-          description: URL not found
-        '500':
-          description: Server error
+          description: Short URL not found
+
 components:
-  parameters:
-    AuthorizationHeader:
-      name: Authorization
-      in: header
-      required: true
-      schema:
-        type: string
-        example: Bearer <your_jwt_token>
-      description: JWT access token
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
-    CorrelationIdHeader:
-      name: X-Correlation-ID
-      in: header
-      required: false
-      schema:
-        type: string
-        example: 123e4567-e89b-12d3-a456-426614174000
-      description: Correlation ID for tracing
-
-    UserAgentHeader:
-      name: User-Agent
-      in: header
-      required: false
-      schema:
-        type: string
-        example: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
-      description: Client's user agent string
   schemas:
     UrlShortenerDto:
       type: object
@@ -93,79 +79,48 @@ components:
       properties:
         originalUrl:
           type: string
-          example: https://example.com/very/long/url
+          format: uri
+          description: Must start with "http://" or "https://"
+          example: "https://example.com/resource"
         customAlias:
           type: boolean
+          description: Whether the user requested a custom alias
         premiumUser:
           type: boolean
+          description: Whether the user is premium
         highThroughput:
           type: boolean
+          description: Indicates high request volume optimization
         needsDeterminism:
           type: boolean
+          description: Indicates if the same URL should always return the same short URL
         internalTool:
           type: boolean
+          description: Marks if used internally
         customAliasName:
           type: string
           maxLength: 30
-          pattern: '^[a-zA-Z0-9_-]+$'
-          example: my-custom-alias
+          pattern: "^[a-zA-Z0-9_-]+$"
+          description: Custom alias (max 30 characters, alphanumeric, - or _)
+          example: "my_alias123"
         note:
           type: string
           maxLength: 255
-          example: For analytics
+          description: Optional note about the URL
         tags:
           type: array
+          maxItems: 20
+          description: List of tags (each max 30 characters)
           items:
             type: string
-          example: [ "analytics", "internal" ]
-
-    UrlMapping:
-      type: object
-      properties:
-        urlMappingId:
+            maxLength: 30
+        amountOfTime:
           type: integer
-        originalUrl:
+          format: int64
+          description: It is amount of Time needed for Url to be Active after that it can be purged from the System
+          example: 10
+        unitTime:
           type: string
-        shortUrl:
-          type: string
-        userId:
-          type: integer
-        notes:
-          type: string
-        customAlias:
-          type: boolean
-        premiumUser:
-          type: boolean
-        highThroughput:
-          type: boolean
-        needsDeterminism:
-          type: boolean
-        internalTool:
-          type: boolean
-        customAliasName:
-          type: string
-        redirectType:
-          type: integer
-        tags:
-          type: string
-        strategy:
-          type: string
-        expiresAt:
-          type: string
-          format: date-time
-        createdIp:
-          type: string
-        createdUserAgent:
-          type: string
-        isActive:
-          type: boolean
-        createdAt:
-          type: string
-          format: date-time
-        createdBy:
-          type: string
-        updatedAt:
-          type: string
-          format: date-time
-        updatedBy:
-          type: string
+          enum: [ seconds, minutes, hours, Days, Months ]
+          description: Unit of time associated with the amount
+          example: "minutes"

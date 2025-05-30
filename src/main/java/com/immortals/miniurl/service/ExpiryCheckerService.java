@@ -1,7 +1,7 @@
 package com.immortals.miniurl.service;
 
+import com.immortals.miniurl.model.domain.UrlMapping;
 import com.immortals.miniurl.model.enums.UserTypes;
-import com.immortals.miniurl.model.UrlMapping;
 import com.immortals.miniurl.repository.UrlMappingRepository;
 import com.immortals.miniurl.service.exception.UrlShorteningException;
 import com.immortals.miniurl.utils.DateTimeUtils;
@@ -33,7 +33,6 @@ public class ExpiryCheckerService {
                 item.setUpdatedDate(DateTimeUtils.now());
                 item.setUpdatedBy(UserTypes.SYSTEM.name());
             }
-
 
             urlMappingRepository.saveAllAndFlush(expiredItems);
 
