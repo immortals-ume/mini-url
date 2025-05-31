@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@Builder
 public class MiniUrlRequestDto {
 
     @NotBlank(message = "Original URL cannot be empty")
