@@ -27,4 +27,7 @@ public class UrlConstants {
     public static final int SEQUENCE_BITS = 12;
 
     public static final String[] RESERVED_ALIASES = {"admin", "login", "signup", "dashboard", "api", "support", "help", "contact"};
+
+    public static final int MAX_TOKENS = 100;     // max tokens in bucket
+    public static final int REFILL_TOKENS_PER_SECONDS = 10;
 }

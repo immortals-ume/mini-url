@@ -36,7 +36,7 @@ public class JwtProvider {
     @Value("${auth.key-location}")
     private String keyLocation;
 
-    @Value("${app.jwt-issuer}")
+    @Value("${auth.jwt-issuer}")
     private String jwtIssuer;
     private RSAPublicKey publicKey;
 
@@ -57,13 +57,19 @@ public class JwtProvider {
 
     private RSAPublicKey readPublicKey(Path filePath) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         byte[] keyBytes = Files.readAllBytes(filePath);
-        String keyPem = new String(keyBytes, StandardCharsets.UTF_8).replace("-----BEGIN PUBLIC KEY-----", "")
-                .replaceAll("\\s", "")
+
+        String key = new String(keyBytes, StandardCharsets.UTF_8);
+
+
+        String publicKeyPEM = key
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replaceAll(System.lineSeparator(), "")
                 .replace("-----END PUBLIC KEY-----", "");
-        byte[] decoded = Base64.decodeBase64(keyPem);
+
+        byte[] encoded = Base64.decodeBase64(publicKeyPEM);
 
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(encoded);
         return (RSAPublicKey) keyFactory.generatePublic(spec);
     }
 

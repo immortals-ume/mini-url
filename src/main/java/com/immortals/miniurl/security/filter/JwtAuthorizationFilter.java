@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,6 +23,7 @@ import java.util.List;
 import static com.immortals.miniurl.constants.UrlConstants.HEADER_STRING;
 import static com.immortals.miniurl.constants.UrlConstants.TOKEN_PREFIX;
 
+@Order(2)
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 

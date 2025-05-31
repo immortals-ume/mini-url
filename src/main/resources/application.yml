@@ -8,7 +8,7 @@ spring:
     default-schema: public
     liquibase-schema: public
     change-log: db/changelog-master.xml
-    enabled: true
+    enabled: false
     url: jdbc:postgresql://localhost:5432/mini_url_db
     user: user
     password: admin
@@ -38,8 +38,6 @@ server:
     enabled: true
     mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
     min-response-size: 1024 # in bytes
-
-
 
 eureka:
   client:
@@ -100,6 +98,9 @@ cache:
     enabled: true
 
 auth:
+  key-location: src/main/resources
+  publicKeyFile: jwtRSA256-public.pem
+  jwt-issuer: https://your-issuer.example.com
   cache:
     static-resources:
       max-age-seconds: 31536000
