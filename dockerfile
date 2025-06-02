@@ -39,7 +39,7 @@ WORKDIR ${APP_HOME}
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy JAR from build stage
-COPY --from=build /app/build/libs/mini-url-1.0.0.jar mini-url.jar
+COPY --from=build /app/build/libs/mini-url-1.0.1.jar mini-url.jar
 
 # Set ownership and permissions
 RUN chown appuser:appgroup mini-url.jar
