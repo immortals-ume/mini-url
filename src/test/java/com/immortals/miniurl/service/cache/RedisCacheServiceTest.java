@@ -39,7 +39,7 @@ class RedisCacheServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
-        redisCacheService = new RedisCacheService<>(redisTemplate, cacheProperties);
+        redisCacheService = new RedisCacheService<>(redisTemplate);
     }
 
     @Test

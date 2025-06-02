@@ -1,6 +1,5 @@
 package com.immortals.miniurl.service.cache;
 
-import com.immortals.miniurl.config.cache.CacheProperties;
 import com.immortals.miniurl.service.exception.CacheException;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,6 @@ public class RedisCacheService<K, V> implements CacheService<K, V> {
 
     private final RedisTemplate<K, V> redisTemplate;
     private final ValueOperations<K, V> valueOps;
-    private final CacheProperties cacheProperties;
 
 
     private final AtomicLong hits = new AtomicLong(0);
@@ -34,9 +32,8 @@ public class RedisCacheService<K, V> implements CacheService<K, V> {
 
     private final ReentrantLock metricsLock = new ReentrantLock();
 
-    public RedisCacheService(@Qualifier("redisTemplate") RedisTemplate<K, V> redisTemplate, CacheProperties cacheProperties) {
+    public RedisCacheService(@Qualifier("redisTemplate") RedisTemplate<K, V> redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.cacheProperties = cacheProperties;
         this.valueOps = redisTemplate.opsForValue();
     }
 

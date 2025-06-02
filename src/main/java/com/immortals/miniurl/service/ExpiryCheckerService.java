@@ -26,7 +26,7 @@ public class ExpiryCheckerService {
 
     private final ReentrantLock executionLock = new ReentrantLock();
 
-    @Scheduled(cron = "0 */15 * * * *")
+    @Scheduled(cron = "0 */30 * * * *")
     @Transactional(
             isolation = Isolation.READ_COMMITTED,
             propagation = Propagation.REQUIRED,

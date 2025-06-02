@@ -1,42 +1,43 @@
-# Stage 1: Build stage
-FROM gradle:8.3.3-jdk17 AS build
+# Stage 1: Build with JDK 21 + Gradle 8.13 installed manually
+FROM eclipse-temurin:21-jdk AS build
 
-# Set working directory inside the container
+ENV GRADLE_VERSION=8.13
+ENV GRADLE_HOME=/opt/gradle/gradle-$GRADLE_VERSION
+ENV PATH=${GRADLE_HOME}/bin:${PATH}
+
 WORKDIR /app
 
-# Copy only the necessary files for caching dependencies
+# Install unzip and curl
+RUN microdnf install -y unzip curl && microdnf clean all
+
+# Download and install Gradle
+RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o gradle.zip \
+    && unzip gradle.zip -d /opt/gradle \
+    && rm gradle.zip
+
+# Copy gradle files for dependency caching
 COPY build.gradle settings.gradle gradle.properties ./
 COPY gradle ./gradle
 
-# Download dependencies (cache layer)
-RUN gradle --no-daemon buildNeeded
+# Download dependencies
+RUN gradle buildNeeded --no-daemon
 
 # Copy source code
 COPY src ./src
 
-# Build the application (adjust task if needed, e.g. assemble, build)
-RUN gradle --no-daemon clean build -x test
+# Build the application skipping tests
+RUN gradle clean build -x test --no-daemon
 
-# Stage 2: Run stage
-FROM eclipse-temurin:17-jre-alpine
+# Stage 2: Runtime with JDK 21 runtime only
+FROM eclipse-temurin:21-jre-alpine
 
-# Create a non-root user to run the app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
-# Create app directory
 WORKDIR /app
 
-# Copy the built jar from the build stage
 COPY --from=build /app/build/libs/*.jar app.jar
 
-# Change ownership to non-root user
-RUN chown appuser:appgroup /app/mini-url.jar
-
-# Switch to non-root user
+RUN chown appuser:appgroup /app/app.jar
 USER appuser
 
-# Expose the port your app listens on (adjust as needed)
 EXPOSE 8080
-
-# Run the jar
-ENTRYPOINT ["java","-jar","mini-url.jar"]
+ENTRYPOINT ["java", "-jar", "mini-url-1.0.0.jar"]
