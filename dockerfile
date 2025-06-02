@@ -1,5 +1,5 @@
 # -------- Stage 1: Build --------
-FROM eclipse-temurin:21-jdk as build
+FROM eclipse-temurin:21-jdk AS build
 
 # Arguments and environment variables
 ARG GRADLE_VERSION=8.13
