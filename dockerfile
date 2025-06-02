@@ -23,7 +23,7 @@ RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION
 # Copy only the files needed to cache dependencies
 COPY build.gradle settings.gradle gradle.properties ./
 COPY gradle ./gradle
-RUN gradle buildNeeded
+RUN gradle build -x test --no-daemon
 
 # Copy source code and build
 COPY src ./src
