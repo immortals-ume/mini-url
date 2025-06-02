@@ -1,27 +1,31 @@
 # -------- Stage 1: Build --------
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:21-jdk as build
 
-ENV GRADLE_VERSION=8.13 \
-    GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION} \
-    PATH=/opt/gradle/gradle-${GRADLE_VERSION}/bin:${PATH} \
+# Arguments and environment variables
+ARG GRADLE_VERSION=8.13
+ENV GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION} \
+    PATH="/opt/gradle/gradle-${GRADLE_VERSION}/bin:${PATH}" \
     APP_HOME=/app
 
+# Set working directory
 WORKDIR ${APP_HOME}
 
-# Install unzip and curl for Gradle setup
-RUN microdnf install -y unzip curl && microdnf clean all
+# Install unzip and curl
+RUN apt-get update && \
+    apt-get install -y unzip curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install Gradle
-RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o gradle.zip \
-    && unzip gradle.zip -d /opt/gradle \
-    && rm gradle.zip
+# Install Gradle manually for control and reproducibility
+RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -o gradle.zip && \
+    unzip gradle.zip -d /opt/gradle && \
+    rm gradle.zip
 
-# Cache Gradle configuration and dependencies
+# Copy only the files needed to cache dependencies
 COPY build.gradle settings.gradle gradle.properties ./
 COPY gradle ./gradle
 RUN gradle buildNeeded --no-daemon
 
-# Copy source code and build the JAR (excluding tests)
+# Copy source code and build
 COPY src ./src
 RUN gradle clean build -x test --no-daemon
 
@@ -31,18 +35,18 @@ FROM eclipse-temurin:21-jre-alpine
 ENV APP_HOME=/app
 WORKDIR ${APP_HOME}
 
-# Add non-root user
+# Create non-root user for running the app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copy the built JAR from build stage
-COPY --from=build /app/build/libs/mini-url-1.0.0.jar mini-url-1.0.0.jar
+# Copy JAR from build stage
+COPY --from=build /app/build/libs/mini-url-1.0.0.jar mini-url.jar
 
-# Set file ownership and permissions
-RUN chown appuser:appgroup mini-url-1.0.0.jar
+# Set ownership and permissions
+RUN chown appuser:appgroup mini-url.jar
 USER appuser
 
-# Expose app port
+# Expose application port
 EXPOSE 8080
 
-# Run the JAR
-ENTRYPOINT ["java", "-jar", "mini-url-1.0.0.jar"]
+# Start the application
+ENTRYPOINT ["java", "-jar", "mini-url.jar"]
