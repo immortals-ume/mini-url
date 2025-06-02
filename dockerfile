@@ -23,11 +23,11 @@ RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION
 # Copy only the files needed to cache dependencies
 COPY build.gradle settings.gradle gradle.properties ./
 COPY gradle ./gradle
-RUN gradle buildNeeded --no-daemon
+RUN gradle buildNeeded
 
 # Copy source code and build
 COPY src ./src
-RUN gradle clean build -x test --no-daemon
+RUN gradle clean build
 
 # -------- Stage 2: Runtime --------
 FROM eclipse-temurin:21-jre-alpine
