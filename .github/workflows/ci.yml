@@ -84,7 +84,7 @@ jobs:
 
       - name: 🏷️ Tag Docker Image
         run: |
-          docker tag local-image:latest ${{ secrets.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY }}E:latest
+          docker tag local-image:latest ${{ secrets.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY }}:latest
 
       - name: 📤 Push Docker Image
         run: |
