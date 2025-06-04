@@ -81,6 +81,8 @@ jobs:
       - name: 🐳 Build Docker Image
         run: |
           docker build -t local-image:latest .
+      - name: Lowercase image name
+        run: echo "IMAGE_NAME=${{ env.DOCKER_REGISTRY }}" >> $GITHUB_ENV
 
       - name: 🏷️ Tag Docker Image
         run: |
