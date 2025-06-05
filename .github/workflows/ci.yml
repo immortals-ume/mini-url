@@ -80,14 +80,15 @@ jobs:
 
       - name: 🐳 Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:latest .
+          IMAGE_NAME=${{ secrets.DOCKER_IMAGE_NAME }}
+          if [ -z "$IMAGE_NAME" ]; then
+          echo "DOCKER_IMAGE_NAME secret is not set!"
+          exit 1
+          fi
+          docker build -t "$IMAGE_NAME:latest" .
 
       - name: Lowercase image name
         run: echo "IMAGE_NAME=${{ secrets.DOCKER_IMAGE_NAME }}" >> $GITHUB_ENV
-
-      - name: 🏷️ Tag Docker Image
-        run: |
-          docker tag ${{ secrets.DOCKER_IMAGE_NAME }}:latest
 
       - name: 📤 Push Docker Image
         run: |
