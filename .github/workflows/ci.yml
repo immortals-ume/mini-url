@@ -73,13 +73,9 @@ jobs:
 
       - name: Check which secrets are set
         run: |
-          echo "DOCKER_IMAGE_NAME set? ${{ secrets.DOCKER_IMAGE_NAME != '' }}"
           echo "DOCKER_PASSWORD set? ${{ secrets.DOCKER_PASSWORD != '' }}"
           echo "DOCKER_REGISTRY set? ${{ secrets.DOCKER_REGISTRY != '' }}"
           echo "DOCKER_USERNAME set? ${{ secrets.DOCKER_USERNAME != '' }}"
-
-      - name: Lowercase image name
-        run: echo "IMAGE_NAME=${{ secrets.DOCKER_IMAGE_NAME }}" >> $GITHUB_ENV
 
       - name: 🔐 Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -90,13 +86,8 @@ jobs:
 
       - name: 🐳 Build Docker Image
         run: |
-          IMAGE_NAME=${{ secrets.DOCKER_IMAGE_NAME }}
-          if [ -z "$IMAGE_NAME" ]; then
-          echo "DOCKER_IMAGE_NAME secret is not set!"
-          exit 1
-          fi
-          docker build -t "$IMAGE_NAME:latest" .
+          docker build -t mini-url:latest .
 
       - name: 📤 Push Docker Image
         run: |
-          docker push ${{ secrets.DOCKER_IMAGE_NAME }}:latest
+          docker push mini-url:latest
