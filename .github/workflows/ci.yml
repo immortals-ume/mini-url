@@ -82,12 +82,12 @@ jobs:
         run: |
           docker build -t local-image:latest .
       - name: Lowercase image name
-        run: echo "IMAGE_NAME=${{ env.DOCKER_REGISTRY }}" >> $GITHUB_ENV
+        run: echo "IMAGE_NAME=${{ secrets.DOCKER_IMAGE }}" >> $GITHUB_ENV
 
       - name: 🏷️ Tag Docker Image
         run: |
-          docker tag local-image:latest ${{ secrets.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY }}:latest
+          docker tag local-image:latest ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_IMAGE }}:latest
 
       - name: 📤 Push Docker Image
         run: |
-          docker push ${{ secrets.DOCKER_REGISTRY }}/${{ env.DOCKER_REGISTRY }}:latest
+          docker push ${{ secrets.DOCKER_REGISTRY }}/${{ secrets.DOCKER_IMAGE }}:latest
