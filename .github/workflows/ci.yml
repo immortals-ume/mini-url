@@ -90,4 +90,4 @@ jobs:
 
       - name: 📤 Push Docker Image
         run: |
-          docker push mini-url:latest
+          docker push ${{ secrets.DOCKER_REGISTRY }}/mini-url:latest
