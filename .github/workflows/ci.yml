@@ -80,7 +80,7 @@ jobs:
 
       - name: 🐳 Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }:latest .
+          docker build -t ${{ secrets.DOCKER_IMAGE_NAME }}:latest .
 
       - name: Lowercase image name
         run: echo "IMAGE_NAME=${{ secrets.DOCKER_IMAGE_NAME }}" >> $GITHUB_ENV
