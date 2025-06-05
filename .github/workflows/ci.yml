@@ -8,7 +8,6 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  DOCKER_IMAGE_NAME: mini-url
 
 jobs:
   setup:
