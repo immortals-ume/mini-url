@@ -2,14 +2,14 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ master,develop,main,feature.* ]
+    branches: [ master, develop, main, feature.* ]
   pull_request:
-    branches: [ master,develop ]
+    branches: [ master, develop ]
 
 env:
   JAVA_VERSION: '21'
   DOCKER_REGISTRY: ghcr.io
-  DOCKER_IMAGE_NAME: your-org/your-app-name
+  DOCKER_IMAGE_NAME: your-org/your-app-name # Change this to match your repo/image
 
 jobs:
   setup:
@@ -23,6 +23,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ env.JAVA_VERSION }}
+          cache: 'maven'  # Enables caching for Maven dependencies
 
   checkout-and-cache:
     name: Checkout & Cache
@@ -31,16 +32,13 @@ jobs:
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v3
-      - name: 💾 Cache Gradle Dependencies
+
+      - name: 💾 Cache Maven Dependencies
         uses: actions/cache@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-
-      - name: 📦 Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: maven-
 
   build:
     name: 🔨 Build & Test
@@ -49,11 +47,12 @@ jobs:
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v3
-      - name: ✅ Run Tests
-        run: ./gradlew test --no-daemon
-      - name: 🔧 Build Project
-        run: ./gradlew clean build --no-daemon
 
+      - name: ✅ Run Tests
+        run: mvn test --batch-mode --no-transfer-progress
+
+      - name: 🔧 Build Project
+        run: mvn clean install --batch-mode --no-transfer-progress
 
   docker:
     name: 🐳 Docker Build & Push
@@ -65,12 +64,6 @@ jobs:
     steps:
       - name: 🧾 Checkout code
         uses: actions/checkout@v3
-
-      - name: 📄 Ensure gradle.properties exists
-        run: |
-          if [ ! -f gradle.properties ]; then
-            echo "# temporary gradle.properties" > gradle.properties
-          fi
 
       - name: 🔐 Log in to GitHub Container Registry
         uses: docker/login-action@v3
