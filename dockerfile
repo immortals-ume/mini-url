@@ -1,5 +1,5 @@
 # -------- Stage 1: Build --------
-FROM eclipse-temurin:21-jdk as build
+FROM eclipse-temurin:21-jdk AS build
 
 # Arguments and environment variables
 ARG GRADLE_VERSION=8.13
@@ -21,13 +21,13 @@ RUN curl -fsSL https://services.gradle.org/distributions/gradle-${GRADLE_VERSION
     rm gradle.zip
 
 # Copy only the files needed to cache dependencies
-COPY build.gradle settings.gradle gradle.properties ./
+COPY build.gradle settings.gradle ./
 COPY gradle ./gradle
-RUN gradle buildNeeded --no-daemon
+RUN gradle build -x test --no-daemon
 
 # Copy source code and build
 COPY src ./src
-RUN gradle clean build -x test --no-daemon
+RUN gradle clean build
 
 # -------- Stage 2: Runtime --------
 FROM eclipse-temurin:21-jre-alpine
@@ -39,7 +39,7 @@ WORKDIR ${APP_HOME}
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy JAR from build stage
-COPY --from=build /app/build/libs/mini-url-1.0.0.jar mini-url.jar
+COPY --from=build /app/build/libs/mini-url-1.0.1.jar mini-url.jar
 
 # Set ownership and permissions
 RUN chown appuser:appgroup mini-url.jar
