@@ -4,8 +4,6 @@ target/
 
 # Ignore Gradle build output
 build/
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
 
 # Ignore logs
 *.log
