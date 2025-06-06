@@ -70,7 +70,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PASSWORD_TOKEN }}
+          password: ${{ secrets.PUSH_PASSWORD_TOKEN }}
 
       - name: Build Docker image
         run: |
