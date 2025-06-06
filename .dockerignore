@@ -2,9 +2,6 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
 
-# Ignore Gradle build output
-build/
-
 # Ignore logs
 *.log
 
@@ -19,7 +16,6 @@ Thumbs.db
 
 # Ignore Git version control
 .git/
-.gitignore
 
 # Ignore test results
 test-output/
